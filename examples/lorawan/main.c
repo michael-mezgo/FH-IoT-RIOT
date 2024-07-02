@@ -38,6 +38,11 @@
 #include "net/loramac.h"
 #include "semtech_loramac.h"
 
+#include "cayenne_lpp.h"
+#include "hts221.h"
+#include "hts221_params.h"
+#include "xtimer.h"
+
 /* By default, messages are sent every 20s to respect the duty cycle
    on each channel */
 #ifndef SEND_PERIOD_S
@@ -70,6 +75,9 @@ static uint8_t nwkskey[LORAMAC_NWKSKEY_LEN];
 static uint8_t appskey[LORAMAC_APPSKEY_LEN];
 #endif
 
+static cayenne_lpp_t lpp;
+static hts221_t dev;
+
 static void _alarm_cb(void *arg)
 {
     (void)arg;
@@ -95,9 +103,19 @@ static void _prepare_next_alarm(void)
 static void _send_message(void)
 {
     printf("Sending: %s\n", message);
-    /* Try to send the message */
+    uint16_t hum = 0;
+    int16_t temp = 0;
+    if (hts221_read_humidity(&dev, &hum) != HTS221_OK) {
+        puts(" -- failed to read humidity!");
+    }
+    if (hts221_read_temperature(&dev, &temp) != HTS221_OK) {
+        puts(" -- failed to read temperature!");
+    }
+    cayenne_lpp_reset(&lpp);
+    cayenne_lpp_add_temperature(&lpp, 1, temp / 10);
+    cayenne_lpp_add_relative_humidity(&lpp, 1, hum);
     uint8_t ret = semtech_loramac_send(&loramac,
-                                       (uint8_t *)message, strlen(message));
+                                       lpp.buffer, CAYENNE_LPP_TEMPERATURE_SIZE + CAYENNE_LPP_RELATIVE_HUMIDITY_SIZE);
     if (ret != SEMTECH_LORAMAC_TX_DONE) {
         printf("Cannot send message '%s', ret code: %d\n", message, ret);
         return;
@@ -197,6 +215,22 @@ int main(void)
     semtech_loramac_join(&loramac, LORAMAC_JOIN_ABP);
 #endif
     puts("Join procedure succeeded");
+
+/* INIT HTS221*/
+    printf("Init HTS221 on I2C_DEV(%i)\n", (int)hts221_params[0].i2c);
+    if (hts221_init(&dev, &hts221_params[0]) != HTS221_OK) {
+        puts("[FAILED]");
+        return 1;
+    }
+    if (hts221_power_on(&dev) != HTS221_OK) {
+        puts("[FAILED] to set power on!");
+        return 2;
+    }
+    if (hts221_set_rate(&dev, dev.p.rate) != HTS221_OK) {
+        puts("[FAILED] to set continuous mode!");
+        return 3;
+    }
+/* ENDINIT */
 
     /* start the sender thread */
     sender_pid = thread_create(sender_stack, sizeof(sender_stack),

@@ -11,9 +11,9 @@ RIOTBASE ?= $(CURDIR)/../..
 ACTIVATION_MODE ?= otaa
 
 ifeq (otaa,$(ACTIVATION_MODE))
-  DEVEUI ?= 0000000000000000
+  DEVEUI ?= 70B3D57ED0068CD3
   APPEUI ?= 0000000000000000
-  APPKEY ?= 00000000000000000000000000000000
+  APPKEY ?= EFC0322D18E70CFEC9AD519367313218
 else ifeq (abp,$(ACTIVATION_MODE))
   DEVADDR ?= 00000000
   NWKSKEY ?= 00000000000000000000000000000000
@@ -45,6 +45,12 @@ USEMODULE += auto_init_loramac
 USEMODULE += $(DRIVER)
 USEMODULE += fmt
 FEATURES_OPTIONAL += periph_rtc
+
+USEPKG += cayenne-lpp
+
+USEMODULE += hts221
+
+USEMODULE += xtimer
 
 # Uncomment the following line to enable Loramac stack state persistence on EEPROM.
 # Make sure the EEPROM is erased before enabling this and when flashing a board
