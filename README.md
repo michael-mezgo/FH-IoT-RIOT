@@ -1,3 +1,7 @@
+This repository was archived on 2026-09-15. Lab exercise completed as part of the 'IoT' course (ILV) @ FH Campus Wien.
+
+---
+
 [![Nightly CI status master][master-ci-badge]][master-ci-link]
 [![GitHub release][release-badge]][release-link]
 [![License][license-badge]][license-link]
